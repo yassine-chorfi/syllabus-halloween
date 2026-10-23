@@ -103,6 +103,8 @@
     let starting = false;
     let lastSaved = 0;
     music.volume = 0.35;
+    music.autoplay = enabled;
+    music.muted = false;
     function update() {
       const playing = !music.paused && !music.ended;
       button.classList.toggle('is-playing', playing);
@@ -161,7 +163,8 @@
       }
     });
     update();
-    if (music.readyState >= 1) { restorePosition(); start(); }
+    if (music.readyState >= 1) restorePosition();
+    start();
   })();
   </script>
 </body>
