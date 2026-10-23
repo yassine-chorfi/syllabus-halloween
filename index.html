@@ -103,7 +103,8 @@
     let starting = false;
     let lastSaved = 0;
     music.volume = 0.35;
-    music.autoplay = enabled;
+    music.autoplay = false;
+    let scrollStarted = false;
     music.muted = false;
     function update() {
       const playing = !music.paused && !music.ended;
@@ -142,20 +143,33 @@
       }
       update();
     });
-    function firstInteraction(event) {
-      if (button.contains(event.target)) return;
+    function startOnScroll() {
+      scrollStarted = true;
       if (enabled) start();
     }
-    ['pointerdown', 'touchend', 'keydown'].forEach(type =>
-      document.addEventListener(type, firstInteraction, { passive: true }));
-    music.addEventListener('loadedmetadata', () => { restorePosition(); start(); }, { once: true });
+    window.addEventListener('scroll', startOnScroll, { passive: true });
+    window.addEventListener('wheel', event => {
+      if (event.deltaY || event.deltaX) startOnScroll();
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      if (scrollStarted && enabled) start();
+    }, { passive: true });
+    document.addEventListener('keydown', event => {
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)
+          && !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) && !event.target.isContentEditable) startOnScroll();
+    });
+    document.querySelector('.scroll-link').addEventListener('click', startOnScroll);
+    music.addEventListener('loadedmetadata', () => {
+      restorePosition();
+      if (scrollStarted) start();
+    }, { once: true });
     music.addEventListener('play', update);
     music.addEventListener('pause', () => { savePosition(); update(); });
     music.addEventListener('timeupdate', () => {
       if (Date.now() - lastSaved > 1000) { savePosition(); lastSaved = Date.now(); }
     });
     window.addEventListener('pagehide', savePosition);
-    window.addEventListener('pageshow', () => { if (enabled) start(); });
+    window.addEventListener('pageshow', () => { if (scrollStarted && enabled) start(); });
     window.addEventListener('storage', event => {
       if (event.key === preferenceKey) {
         enabled = event.newValue !== 'false';
@@ -164,7 +178,6 @@
     });
     update();
     if (music.readyState >= 1) restorePosition();
-    start();
   })();
   </script>
 </body>
